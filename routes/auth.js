@@ -27,6 +27,7 @@ router.post('/login', async (req, res) => {
         const payload = {
             id: user.id,
             email: user.email,
+            password: user.password
         };
 
         const token = jwt.sign(payload, process.env.TOKEN_CODE, { expiresIn: 2000 });
