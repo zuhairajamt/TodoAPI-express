@@ -39,6 +39,11 @@ router.put(`/:id`, authToken, async (req, res) => {
     const { id } = req.params;
     const idInt = parseInt(id);
 
+    const authHeader = req.headers.authorization;
+    const token = authHeader.split(' ')[1];
+    const decode = jwt.verify(token, process.env.TOKEN_CODE);
+    console.log(decode);
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const userFound = await prisma.user.findFirst({
@@ -47,21 +52,34 @@ router.put(`/:id`, authToken, async (req, res) => {
         },
     });
 
+    const emailFound = await prisma.user.findFirst({
+        where: {
+            email: email,
+        },
+    });
+
     if (!isEmpty(userFound)) {
-        const update = await prisma.user.update({
-            where: {
-                id: idInt
-            },
-            data: {
-                email: email,
-                password: hashedPassword,
-            }
-        });
-        res.status(201);
-        res.json({
-            msg: 'Akun berhasil diupdate',
-            data: update
-        });
+        if (idInt == decode.id && !emailFound) {
+            console.log('idInt: ' + idInt, ' UserId: ' + userFound.id)
+            await prisma.user.update({
+                where: {
+                    id: idInt
+                },
+                data: {
+                    email: email,
+                    password: hashedPassword,
+                }
+            });
+            res.status(201);
+            res.json({
+                msg: 'Akun berhasil diupdate',
+            });
+        } else {
+            res.status(400);
+            res.json({
+                msg: 'Gak berhak lol atau email udah dipakai lol',
+            });
+        }
     } else {
         res.status(400);
         res.json('Akun tidak ditemukan');
@@ -106,13 +124,24 @@ function authToken(req, res, next) {
     if (authHeader) {
         const token = authHeader.split(' ')[1];
 
+        // const decode = jwt.verify(token, process.env.TOKEN_CODE);
+        // console.log(decode);
+
+        // const userFound = prisma.user.findFirst({
+        //     where: {
+        //         id: decode.id,
+        //         email: decode.email,
+        //         password: decode.password
+        //     },
+        // });
+
         jwt.verify(token, process.env.TOKEN_CODE, (err, user) => {
             if (err) {
                 return res.sendStatus(403);
+            } else {
+                req.user = user;
+                next();
             }
-
-            req.user = user;
-            next();
         });
     } else {
         res.sendStatus(401);
