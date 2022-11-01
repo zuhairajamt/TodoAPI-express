@@ -18,7 +18,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Route
 app.use('/api/user', userRoute);
 app.use('/api', authRoute);
-// app.use('/api/todo', todoRoute);
+app.use('/api/todo', todoRoute);
 
 app.get('/', (req, res) => {
     res.send('<h1>Node.js TODO API PRISMA ORM</h1> <h4>Message: Success</h4><p>Version: 1.0</p>');

@@ -17,7 +17,7 @@ router.post(`/`, async (req, res) => {
     })
 
     if (isEmpty(userFound)) {
-        await prisma.user.create({
+        const user = await prisma.user.create({
             data: {
                 email,
                 password: hashedPassword,
@@ -25,6 +25,7 @@ router.post(`/`, async (req, res) => {
         })
         res.status(201);
         res.json({
+            id: user.id,
             msg: 'Akun berhasil terdaftar silakan login',
         })
     } else {
@@ -42,7 +43,7 @@ router.put(`/:id`, authToken, async (req, res) => {
     const authHeader = req.headers.authorization;
     const token = authHeader.split(' ')[1];
     const decode = jwt.verify(token, process.env.TOKEN_CODE);
-    console.log(decode);
+    //console.log(decode);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -94,6 +95,11 @@ router.delete(`/:id`, authToken, async (req, res) => {
     const { id } = req.params;
     const idInt = parseInt(id);
 
+    const authHeader = req.headers.authorization;
+    const token = authHeader.split(' ')[1];
+    const decode = jwt.verify(token, process.env.TOKEN_CODE);
+    //console.log(decode);
+
     const userFound = await prisma.user.findFirst({
         where: {
             id: idInt,
@@ -101,18 +107,27 @@ router.delete(`/:id`, authToken, async (req, res) => {
     });
 
     if (!isEmpty(userFound)) {
-        await prisma.user.delete({
-            where: {
-                id: idInt
-            },
-        });
-        res.status(201);
-        res.json({
-            msg: 'Akun berhasil dihapus',
-        });
+        if (idInt == decode.id) {
+            await prisma.user.delete({
+                where: {
+                    id: idInt
+                },
+            });
+            res.status(201);
+            res.json({
+                msg: 'Akun berhasil dihapus',
+            });
+        } else {
+            res.status(400);
+            res.json({
+                msg: 'Akun tidak berhasil dihapus',
+            });
+        };
     } else {
         res.status(400);
-        res.json('Akun tidak ditemukan');
+        res.json({
+            msg: 'Akun tidak berhasil dihapus',
+        });
     };
 });
 
@@ -126,17 +141,6 @@ function authToken(req, res, next) {
 
     if (authHeader) {
         const token = authHeader.split(' ')[1];
-
-        // const decode = jwt.verify(token, process.env.TOKEN_CODE);
-        // console.log(decode);
-
-        // const userFound = prisma.user.findFirst({
-        //     where: {
-        //         id: decode.id,
-        //         email: decode.email,
-        //         password: decode.password
-        //     },
-        // });
 
         jwt.verify(token, process.env.TOKEN_CODE, (err, user) => {
             if (err) {
