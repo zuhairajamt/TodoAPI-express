@@ -5,6 +5,24 @@ const prisma = new PrismaClient();
 const jwt = require('jsonwebtoken');
 const Joi = require('joi');
 
+// get all todo
+router.get(`/`, authToken, async (req, res) => {
+
+    const authHeader = req.headers.authorization;
+    const token = authHeader.split(' ')[1];
+    const decode = jwt.verify(token, process.env.TOKEN_CODE);
+
+    const todo = await prisma.todo.findMany({
+        where: {
+            user_id: decode.id,
+        },
+    });
+    res.status(201);
+    res.json({
+        data: todo,
+    });
+});
+
 // post todo
 router.post(`/`, authToken, async (req, res) => {
     const { title, description } = req.body;
@@ -43,7 +61,7 @@ router.post(`/`, authToken, async (req, res) => {
             });
             break;
     };
-})
+});
 
 // Update todo
 router.put(`/:id`, authToken, async (req, res) => {
