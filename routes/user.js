@@ -55,6 +55,9 @@ router.put(`/:id`, authToken, async (req, res) => {
     const emailFound = await prisma.user.findFirst({
         where: {
             email: email,
+            NOT: {
+                id: idInt
+            },
         },
     });
 
