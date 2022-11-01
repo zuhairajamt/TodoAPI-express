@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Joi = require('joi');
 
@@ -72,10 +71,6 @@ router.put(`/:id`, authToken, async (req, res) => {
 
     const validation = schema.validate({ title: title, description: description, completed: completed });
 
-    // console.log(todoFound.user_id + 'wdadwawd' + idInt);
-    //console.log(todoFound.user_id + 'decode: ' + decode.id);
-    //console.log(todoIdFound.id);
-
     if (todoFound) {
         await prisma.todo.update({
             where: {
@@ -109,11 +104,13 @@ router.delete(`/:id`, authToken, async (req, res) => {
     const authHeader = req.headers.authorization;
     const token = authHeader.split(' ')[1];
     const decode = jwt.verify(token, process.env.TOKEN_CODE);
-    //console.log(decode);
 
     const todoFound = await prisma.todo.findFirst({
         where: {
             user_id: decode.id,
+            AND: {
+                id: idInt
+            },
         },
     });
 
@@ -126,12 +123,12 @@ router.delete(`/:id`, authToken, async (req, res) => {
         res.status(201);
         res.json({
             data: todoDeleted,
-            msg: 'Akun berhasil dihapus',
+            msg: 'Todo berhasil dihapus',
         });
     } else {
         res.status(400);
         res.json({
-            msg: 'Akun tidak berhasil dihapus',
+            msg: 'Todo tidak berhasil dihapus',
         });
     };
 });

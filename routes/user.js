@@ -9,7 +9,7 @@ const jwt = require('jsonwebtoken');
 router.post(`/`, async (req, res) => {
     const { email, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
-    //console.log(password);
+   
     const userFound = await prisma.user.findMany({
         where: {
             email: email
@@ -43,7 +43,6 @@ router.put(`/:id`, authToken, async (req, res) => {
     const authHeader = req.headers.authorization;
     const token = authHeader.split(' ')[1];
     const decode = jwt.verify(token, process.env.TOKEN_CODE);
-    //console.log(decode);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -98,8 +97,7 @@ router.delete(`/:id`, authToken, async (req, res) => {
     const authHeader = req.headers.authorization;
     const token = authHeader.split(' ')[1];
     const decode = jwt.verify(token, process.env.TOKEN_CODE);
-    //console.log(decode);
-
+    
     const userFound = await prisma.user.findFirst({
         where: {
             id: idInt,
