@@ -15,32 +15,40 @@ router.post(`/`, authToken, async (req, res) => {
     const decode = jwt.verify(token, process.env.TOKEN_CODE);
 
     const schema = Joi.object({
-        title: Joi.string().required().max(100).min(10),
+        title: Joi.string().required().max(100).min(1),
         description: Joi.string().required().max(200),
-    })
+    });
 
-    if (!schema.validate(req.body)) {
-        const todo = await prisma.todo.create({
-            data: {
-                user_id: decode.id,
-                title,
-                description,
-            },
-        })
-        res.status(201);
-        res.json({
-            todo: todo,
-            msg: 'todo berhasil ditambahkan',
-        })
-    } else {
-        res.status(400);
-        res.json(validation.error.details);
-    }
+    const validation = schema.validate({ title: title, description: description });
+
+    switch (validation) {
+        case validation:
+            const todo = await prisma.todo.create({
+                data: {
+                    user_id: decode.id,
+                    title,
+                    description,
+                },
+            });
+            res.status(201);
+            res.json({
+                todo: todo,
+                msg: 'todo berhasil ditambahkan',
+            });
+            break;
+        case !validation:
+            res.status(400);
+            res.json({
+                status: validation.error,
+                msg: 'todo gagal ditambahkan',
+            });
+            break;
+    };
 })
 
-// Update
+// Update todo
 router.put(`/:id`, authToken, async (req, res) => {
-    const { email, password } = req.body;
+    const { title, description, completed } = req.body;
     const { id } = req.params;
     const idInt = parseInt(id);
 
@@ -48,49 +56,48 @@ router.put(`/:id`, authToken, async (req, res) => {
     const token = authHeader.split(' ')[1];
     const decode = jwt.verify(token, process.env.TOKEN_CODE);
     //console.log(decode);
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const userFound = await prisma.user.findFirst({
+    const todoFound = await prisma.todo.findFirst({
         where: {
-            id: idInt,
-        },
-    });
-
-    const emailFound = await prisma.user.findFirst({
-        where: {
-            email: email,
-            NOT: {
+            user_id: decode.id,
+            AND: {
                 id: idInt
             },
         },
     });
+    const schema = Joi.object({
+        title: Joi.string().required().max(100).min(1),
+        description: Joi.string().required().max(200),
+        completed: Joi.number().min(0).max(1),
+    });
 
-    if (!isEmpty(userFound)) {
-        if (idInt == decode.id && !emailFound) {
-            console.log('idInt: ' + idInt, ' UserId: ' + userFound.id)
-            await prisma.user.update({
-                where: {
-                    id: idInt
-                },
-                data: {
-                    email: email,
-                    password: hashedPassword,
-                }
-            });
-            res.status(201);
-            res.json({
-                msg: 'Akun berhasil diupdate',
-            });
-        } else {
-            res.status(400);
-            res.json({
-                msg: 'Gak berhak lol atau email udah dipakai lol',
-            });
-        }
+    const validation = schema.validate({ title: title, description: description, completed: completed });
+
+    // console.log(todoFound.user_id + 'wdadwawd' + idInt);
+    //console.log(todoFound.user_id + 'decode: ' + decode.id);
+    //console.log(todoIdFound.id);
+
+    if (todoFound) {
+        await prisma.todo.update({
+            where: {
+                id: idInt
+            },
+            data: {
+                title: title,
+                description: description,
+                completed: completed,
+                user_id: decode.id,
+            }
+        });
+        res.status(201);
+        res.json({
+            msg: 'Todo berhasil diupdate',
+        });
     } else {
         res.status(400);
-        res.json('Akun tidak ditemukan');
+        res.json({
+            status: validation.error,
+            msg: 'todo gagal diupdate',
+        });
     };
 });
 
@@ -104,29 +111,23 @@ router.delete(`/:id`, authToken, async (req, res) => {
     const decode = jwt.verify(token, process.env.TOKEN_CODE);
     //console.log(decode);
 
-    const userFound = await prisma.user.findFirst({
+    const todoFound = await prisma.todo.findFirst({
         where: {
-            id: idInt,
+            user_id: decode.id,
         },
     });
 
-    if (!isEmpty(userFound)) {
-        if (idInt == decode.id) {
-            await prisma.user.delete({
-                where: {
-                    id: idInt
-                },
-            });
-            res.status(201);
-            res.json({
-                msg: 'Akun berhasil dihapus',
-            });
-        } else {
-            res.status(400);
-            res.json({
-                msg: 'Akun tidak berhasil dihapus',
-            });
-        };
+    if (todoFound) {
+        const todoDeleted = await prisma.todo.delete({
+            where: {
+                id: idInt
+            },
+        });
+        res.status(201);
+        res.json({
+            data: todoDeleted,
+            msg: 'Akun berhasil dihapus',
+        });
     } else {
         res.status(400);
         res.json({
@@ -134,10 +135,6 @@ router.delete(`/:id`, authToken, async (req, res) => {
         });
     };
 });
-
-function isEmpty(obj) {
-    return !obj || Object.keys(obj).length === 0;
-};
 
 function authToken(req, res, next) {
     //https://stackabuse.com/authentication-and-authorization-with-jwts-in-express-js/
