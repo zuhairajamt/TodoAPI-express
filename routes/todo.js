@@ -90,7 +90,7 @@ router.put(`/:id`, authToken, async (req, res) => {
     const validation = schema.validate({ title: title, description: description, completed: completed });
 
     if (todoFound) {
-        await prisma.todo.update({
+        const todoUpdate = await prisma.todo.update({
             where: {
                 id: idInt
             },
@@ -103,6 +103,7 @@ router.put(`/:id`, authToken, async (req, res) => {
         });
         res.status(201);
         res.json({
+            data: todoUpdate,
             msg: 'Todo berhasil diupdate',
         });
     } else {

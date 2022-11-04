@@ -80,7 +80,7 @@ router.put(`/:id`, authToken, async (req, res) => {
         } else {
             res.status(400);
             res.json({
-                msg: 'Gak berhak lol atau email udah dipakai lol',
+                msg: 'Tidak berhak atau email udah dipakai',
             });
         }
     } else {
@@ -106,13 +106,20 @@ router.delete(`/:id`, authToken, async (req, res) => {
 
     if (!isEmpty(userFound)) {
         if (idInt == decode.id) {
-            await prisma.user.delete({
+            await prisma.todo.deleteMany({
+                where: {
+                    user_id: decode.id
+                },
+            });
+            //await delay(1000);
+            const userDeleted = await prisma.user.delete({
                 where: {
                     id: idInt
                 },
             });
             res.status(201);
             res.json({
+                data: userDeleted,
                 msg: 'Akun berhasil dihapus',
             });
         } else {
