@@ -120,7 +120,7 @@ router.delete(`/:id`, authToken, async (req, res) => {
             res.status(201);
             res.json({
                 data: userDeleted,
-                msg: 'Akun berhasil dihapus',
+                msg: 'Akun berhasil dihapus ',
             });
         } else {
             res.status(400);
